@@ -1,0 +1,23 @@
+{
+  "name": "claude-pr-review-agent",
+  "version": "1.0.0",
+  "description": "Claude Code agent that reviews PRs and posts structured comments",
+  "main": "pr-review-agent.js",
+  "bin": {
+    "claude-review": "./cli.js"
+  },
+  "scripts": {
+    "start": "node pr-review-agent.js",
+    "review": "node cli.js"
+  },
+  "keywords": ["github", "pr", "review", "claude", "ai"],
+  "author": "shuibui",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shuibui/claude-pr-review-agent"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

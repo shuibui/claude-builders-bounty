@@ -1,0 +1,30 @@
+name: PR Review
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    if: github.event.comment.body == '/review'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm install -g @shuibui/claude-pr-review-agent
+      
+      - name: Run PR Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Extract PR URL from comment
+          PR_URL=$(echo "${{ github.event.comment.body }}" | grep -oE 'https://github.com/[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+/pull/[0-9]+')
+          claude-review --pr "$PR_URL"
