@@ -1,0 +1,508 @@
+{
+  "name": "Weekly Dev Summary - GitHub + Claude",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cron",
+              "hour": 17,
+              "dayOfWeek": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{$vars.GITHUB_REPO}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$vars.GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        }
+      },
+      "id": "github-api-base",
+      "name": "GitHub API Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [220, -100]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/={{$vars.GITHUB_REPO}}/commits",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "since",
+                "value": "={{$json.since}}"
+              },
+              {
+                "name": "until",
+                "value": "={{$json.until}}"
+              },
+              {
+                "name": "per_page",
+                "value": "100"
+              }
+            ]
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$vars.GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        }
+      },
+      "id": "fetch-commits",
+      "name": "Fetch Commits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, -200]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/={{$vars.GITHUB_REPO}}/issues",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "state",
+                "value": "closed"
+              },
+              {
+                "name": "since",
+                "value": "={{$json.since}}"
+              },
+              {
+                "name": "per_page",
+                "value": "100"
+              }
+            ]
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$vars.GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        }
+      },
+      "id": "fetch-closed-issues",
+      "name": "Fetch Closed Issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/={{$vars.GITHUB_REPO}}/pulls",
+        "options": {
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "state",
+                "value": "closed"
+              },
+              {
+                "name": "per_page",
+                "value": "100"
+              }
+            ]
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$vars.GITHUB_TOKEN}}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        }
+      },
+      "id": "fetch-prs",
+      "name": "Fetch Merged PRs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate date range for the past week\nconst now = new Date();\nconst since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\nconst until = now;\n\n// Format dates to ISO string for GitHub API\nconst sinceStr = since.toISOString();\nconst untilStr = until.toISOString();\n\nreturn {\n  since: sinceStr,\n  until: untilStr,\n  sinceFormatted: since.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),\n  untilFormatted: until.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })\n};"
+      },
+      "id": "date-calculator",
+      "name": "Calculate Date Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter merged PRs from closed PRs\nconst prs = $input.all();\nconst mergedPRs = prs.filter(pr => pr.json.merged_at !== null);\n\n// Filter PRs merged in the last week\nconst since = new Date($vars.SINCE || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));\nconst recentMerged = mergedPRs.filter(pr => {\n  const mergedAt = new Date(pr.json.merged_at);\n  return mergedAt >= since;\n});\n\nreturn recentMerged;"
+      },
+      "id": "filter-merged-prs",
+      "name": "Filter Merged PRs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compile activity data for Claude\nconst commits = $('Fetch Commits').all();\nconst closedIssues = $('Fetch Closed Issues').all();\nconst mergedPRs = $('Filter Merged PRs').all();\nconst dateInfo = $('Calculate Date Range').first().json;\n\n// Build a concise summary of activity\nconst summary = {\n  repo: $vars.GITHUB_REPO || 'owner/repo',\n  period: {\n    from: dateInfo.sinceFormatted,\n    to: dateInfo.untilFormatted\n  },\n  commits: commits.slice(0, 50).map(c => ({\n    sha: c.json.sha?.substring(0, 7),\n    message: c.json.commit?.message?.split('\\n')[0]?.substring(0, 100),\n    author: c.json.commit?.author?.name,\n    date: c.json.commit?.author?.date\n  })),\n  closedIssues: closedIssues.slice(0, 30).map(i => ({\n    number: i.json.number,\n    title: i.json.title?.substring(0, 100),\n    closedAt: i.json.closed_at\n  })),\n  mergedPRs: mergedPRs.slice(0, 30).map(pr => ({\n    number: pr.json.number,\n    title: pr.json.title?.substring(0, 100),\n    mergedAt: pr.json.merged_at,\n    author: pr.json.user?.login\n  })),\n  stats: {\n    totalCommits: commits.length,\n    totalClosedIssues: closedIssues.length,\n    totalMergedPRs: mergedPRs.length\n  }\n};\n\nreturn summary;"
+      },
+      "id": "compile-data",
+      "name": "Compile Activity Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$vars.CLAUDE_API_KEY}}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "claude-sonnet-4-20250514"
+            },
+            {
+              "name": "max_tokens",
+              "value": 2048
+            },
+            {
+              "name": "system",
+              "value": "={{$vars.LANGUAGE === 'FR' ? 'Tu es un assistant qui génère des résumés narratifs en français des activités de développement logiciel. Sois concis mais informatif.' : 'You are an assistant that generates narrative summaries in English of software development activities. Be concise but informative.'}}"
+            },
+            {
+              "name": "messages",
+              "value": "=[{\"role\": \"user\", \"content\": \"={{ $json.prompt }}\"}]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "claude-api",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build prompt for Claude from activity data\nconst data = $input.first().json;\nconst lang = $vars.LANGUAGE || 'EN';\n\nconst isFrench = lang === 'FR';\n\nconst prompt = isFrench\n  ? `Génère un résumé narratif des activités de développement pour le dépôt ${data.repo} sur la période du ${data.period.from} au ${data.period.to}.\n\n**Statistiques:**\n- ${data.stats.totalCommits} commits\n- ${data.stats.totalClosedIssues} issues fermées\n- ${data.stats.totalMergedPRs} PRs fusionnées\n\n**Commits récents:**\n${data.commits.map(c => `- ${c.sha}: ${c.message} (${c.author})`).join('\\n')}\n\n**Issues fermées:**\n${data.closedIssues.map(i => `- #${i.number}: ${i.title}`).join('\\n')}\n\n**PRs fusionnées:**\n${data.mergedPRs.map(pr => `- #${pr.number}: ${pr.title} (par @${pr.author})`).join('\\n')}\n\nFournis un résumé narratif clair et informatif qui met en évidence les accomplissements majeurs et les tendances.`\n  : `Generate a narrative summary of development activities for the ${data.repo} repository for the period from ${data.period.from} to ${data.period.to}.\n\n**Stats:**\n- ${data.stats.totalCommits} commits\n- ${data.stats.totalClosedIssues} closed issues\n- ${data.stats.totalMergedPRs} merged PRs\n\n**Recent Commits:**\n${data.commits.map(c => `- ${c.sha}: ${c.message} (${c.author})`).join('\\n')}\n\n**Closed Issues:**\n${data.closedIssues.map(i => `- #${i.number}: ${i.title}`).join('\\n')}\n\n**Merged PRs:**\n${data.mergedPRs.map(pr => `- #${pr.number}: ${pr.title} (by @${pr.author})`).join('\\n')}\n\nProvide a clear, informative narrative summary highlighting major accomplishments and trends.`;\n\nreturn { prompt };;"
+      },
+      "id": "build-prompt",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, -200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the summary from Claude's response\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || response.error?.message || 'No summary generated';\nconst dateInfo = $('Calculate Date Range').first().json;\n\nconst notification = {\n  summary: content,\n  period: `${dateInfo.sinceFormatted} - ${dateInfo.untilFormatted}`,\n  repo: $vars.GITHUB_REPO || 'owner/repo'\n};\n\nreturn notification;"
+      },
+      "id": "format-notification",
+      "name": "Format Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$vars.DISCORD_WEBHOOK}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "=>{{$json.summary}}"
+            },
+            {
+              "name": "embeds",
+              "value": "=[{\"title\": \"📊 Weekly Dev Summary\", \"description\": \"{{$json.summary}}\", \"color\": 5814783, \"footer\": {\"text\": \"{{$json.repo}} | {{$json.period}}\"}, \"timestamp\": \"{{$now}}\"}]"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "send-discord",
+      "name": "Send Discord Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1540, -100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$vars.SLACK_WEBHOOK}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=:rocket: *Weekly Dev Summary* :rocket:\\n\\n{{$json.summary}}\\n\\n_:calendar: {{$json.period}} | {{$json.repo}}_"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "send-slack",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1540, 100]
+    },
+    {
+      "parameters": {
+        "to": "={{$vars.EMAIL_TO}}",
+        "subject": "=Weekly Dev Summary - {{$json.repo}} - {{$json.period}}",
+        "body": "=<h2>Weekly Development Summary</h2>\\n<p><strong>Repository:</strong> {{$json.repo}}</p>\\n<p><strong>Period:</strong> {{$json.period}}</p>\\n<hr>\\n{{$json.summary}}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Calculate Date Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Date Range": {
+      "main": [
+        [
+          {
+            "node": "Fetch Commits",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Closed Issues",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Merged PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Commits": {
+      "main": [
+        [
+          {
+            "node": "Compile Activity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Closed Issues": {
+      "main": [
+        [
+          {
+            "node": "Compile Activity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Merged PRs": {
+      "main": [
+        [
+          {
+            "node": "Filter Merged PRs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Merged PRs": {
+      "main": [
+        [
+          {
+            "node": "Compile Activity Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Activity Data": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Format Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Notification": {
+      "main": [
+        [
+          {
+            "node": "Send Discord Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Slack Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["github", "claude", "weekly-summary", "automation"],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "templateId": "github-claude-weekly-summary"
+  }
+}
