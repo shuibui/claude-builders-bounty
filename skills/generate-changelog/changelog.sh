@@ -334,12 +334,14 @@ generate_output() {
                     # Append to the right category
                     local md_varname="md_${category// /_}"
                     local json_varname="json_${category// /_}"
-                    if [[ -z "${!md_varname:-}" ]]; then
-                        eval "${md_varname}=\"${md_entry}\""
-                        eval "${json_varname}=\"${json_entry}\""
+                    local current_md="${!md_varname:-}"
+                    local current_json="${!json_varname:-}"
+                    if [[ -z "$current_md" ]]; then
+                        printf -v "$md_varname" "%s" "$md_entry"
+                        printf -v "$json_varname" "%s" "$json_entry"
                     else
-                        eval "${md_varname}=\"${!md_varname}\n${md_entry}\""
-                        eval "${json_varname}=\"${!json_varname},${json_entry}\""
+                        printf -v "$md_varname" "%s\n%s" "$current_md" "$md_entry"
+                        printf -v "$json_varname" "%s,%s" "$current_json" "$json_entry"
                     fi
                 fi
                 categorized=$((categorized + 1))
