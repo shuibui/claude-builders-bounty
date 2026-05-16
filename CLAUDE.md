@@ -59,10 +59,10 @@ Example: `2025-05-13-143000_add_users_table.sql`
 
 ### What We Don't Do
 
-❌ NO `ALTER TABLE` in migrations — always create new tables  
-❌ NO `DROP TABLE` in migrations — create new tables instead  
-❌ NO `SELECT *` — always specify columns  
-❌ NO string concatenation in SQL — use parameterized queries  
+❌ NO `ALTER TABLE` in migrations — always create new tables
+❌ NO `DROP TABLE` in migrations — create new tables instead
+❌ NO `SELECT *` — always specify columns
+❌ NO string concatenation in SQL — use parameterized queries
 ❌ NO `DATETIME('now')` — use Unix timestamps (Date.now() / 1000)
 
 ## Component Patterns
@@ -124,10 +124,10 @@ interface Props {
 
 ## What We Don't Do
 
-🚫 **No Tailwind** — we use CSS Modules with design tokens  
-🚫 **No SSR for authenticated pages** — use 'use client' with auth check  
-🚫 **No direct SQLite writes in API routes** — use repository pattern  
-🚫 **No environment variables in client code** — only NEXT_PUBLIC_ vars  
+🚫 **No Tailwind** — we use CSS Modules with design tokens
+🚫 **No SSR for authenticated pages** — use 'use client' with auth check
+🚫 **No direct SQLite writes in API routes** — use repository pattern
+🚫 **No environment variables in client code** — only NEXT_PUBLIC_ vars
 🚫 **No console.log in production** — use structured logging
 
 ## Dev Commands
