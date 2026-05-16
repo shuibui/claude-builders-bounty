@@ -70,8 +70,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          npx詹
-          ./claude-review --pr ${{ github.event.pull_request.html_url }} --output review.md
+          python claude-review-agent/claude-review --pr ${{ github.event.pull_request.html_url }} --output review.md
 
       - name: Post review comment
         uses: actions/github-script@v7
